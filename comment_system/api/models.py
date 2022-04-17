@@ -26,6 +26,6 @@ class Comment(models.Model):
         related_name='child_comment'
     )
     number = models.PositiveIntegerField(
-        default=1,
+        default=0,
         verbose_name='number'
     )
