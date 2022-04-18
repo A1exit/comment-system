@@ -1,6 +1,5 @@
-from django.http import QueryDict
 from django.shortcuts import get_object_or_404
-from rest_framework import status, viewsets
+from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -16,35 +15,31 @@ class ArticleViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post']
 
 
-class APIComments(APIView):
+class CommentsViewSet(viewsets.ModelViewSet):
     """ Creates comment to an article """
-    def post(self, request, id):
-        if isinstance(request.data, QueryDict):
-            request.data._mutable = True
-        request.data['article'] = id
-        serializer = CommentSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors,
-                        status=status.HTTP_400_BAD_REQUEST)
+    serializer_class = CommentSerializer
+    http_method_names = ['post']
+    queryset = Comment.objects.all()
+
+    def perform_create(self, serializer):
+        article = get_object_or_404(Article, id=self.kwargs.get('article_id'))
+        serializer.save(article=article)
 
 
-class APIAddComments(APIView):
-    """ Returns the article and comments up to the third level of nesting """
-    def post(self, request, id, parent_id):
-        if isinstance(request.data, QueryDict):
-            request.data._mutable = True
-        parent = get_object_or_404(Comment, id=parent_id)
-        request.data['article'] = id
-        request.data['parent'] = parent_id
-        request.data['number'] = parent.number + 1
-        serializer = CommentSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors,
-                        status=status.HTTP_400_BAD_REQUEST)
+class AddCommentViewSet(viewsets.ModelViewSet):
+    """ Creates comment to comment """
+    serializer_class = CommentSerializer
+    http_method_names = ['post']
+
+    def perform_create(self, serializer):
+        article = get_object_or_404(Article, id=self.kwargs.get('article_id'))
+        parent_comment = get_object_or_404(Comment, id=self.kwargs.get(
+            'parent_id'))
+        serializer.save(
+            article=article,
+            number=parent_comment.number + 1,
+            parent=parent_comment,
+        )
 
 
 class APIViewComment(APIView):
@@ -55,3 +50,14 @@ class APIViewComment(APIView):
             number=3)
         serializer = ViewCommentSerializer(comment, many=True)
         return Response(serializer.data)
+
+
+class ViewCommentViewSet(viewsets.ModelViewSet):
+    """ Getting all nested comments for a level 3 comment """
+    serializer_class = ViewCommentSerializer
+    http_method_names = ['get']
+
+    def get_queryset(self):
+        return Comment.objects.filter(
+            article=self.request.data.get('article'),
+            number=4)

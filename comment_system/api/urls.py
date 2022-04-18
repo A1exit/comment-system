@@ -1,17 +1,18 @@
 from django.urls import include, path
 from rest_framework.routers import SimpleRouter
 
-from .views import APIAddComments, APIComments, APIViewComment, ArticleViewSet
+from .views import (AddCommentViewSet, ArticleViewSet, CommentsViewSet,
+                    ViewCommentViewSet)
 
 router = SimpleRouter()
 
 router.register('article', ArticleViewSet, basename='article')
-
+router.register(r"article/(?P<article_id>\d+)/comment/(?P<parent_id>\d+)",
+                AddCommentViewSet, basename="comments_to_comment",)
+router.register(r'article/(?P<article_id>\d+)/comment', CommentsViewSet,
+                basename='comments_to_article',)
+router.register('comments', ViewCommentViewSet, basename='comments')
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('article/<int:id>/comment/<int:parent_id>/',
-         APIAddComments.as_view()),
-    path('article/<int:id>/comment/', APIComments.as_view()),
-    path('comments/', APIViewComment.as_view())
 ]

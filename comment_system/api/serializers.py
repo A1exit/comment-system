@@ -11,7 +11,6 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'text',
-            'article',
             'number',
             'parent',
             'child_comment',
